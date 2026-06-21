@@ -2,6 +2,7 @@ import os
 from faster_whisper import WhisperModel
 import logging
 from typing import Optional
+from opencc import OpenCC
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +19,7 @@ class Transcriber:
         self.model_size = model_size
         self.model = None
         self.last_detected_language = None
+        self.opencc = OpenCC('t2s')  # 繁体转简体转换器
         
     def _load_model(self):
         """延迟加载模型"""
@@ -89,11 +91,16 @@ class Transcriber:
             transcript_lines.append("## Transcription Content")
             transcript_lines.append("")
             
-            # 添加时间戳和文本
+            # 添加时间戳和文本（中文自动繁体转简体）
+            is_chinese = detected_language and detected_language.startswith('zh')
             for segment in segments:
                 start_time = self._format_time(segment.start)
                 end_time = self._format_time(segment.end)
                 text = segment.text.strip()
+                
+                # 中文内容自动繁体转简体
+                if is_chinese:
+                    text = self.opencc.convert(text)
                 
                 transcript_lines.append(f"**[{start_time} - {end_time}]**")
                 transcript_lines.append("")
