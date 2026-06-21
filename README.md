@@ -34,7 +34,26 @@ An AI-powered tool to transcribe and summarize videos and podcasts — paste a U
 
 ### Installation
 
-#### Method 1: Automatic Installation
+#### Method 1: One-Click Start (Recommended)
+
+```bash
+# Clone the repository
+git clone https://github.com/wendy7756/AI-Video-Transcriber.git
+cd AI-Video-Transcriber
+
+# Start the server (auto-creates venv, installs deps, launches)
+./start.sh
+
+# Stop the server
+./start.sh stop
+```
+
+The `start.sh` script will automatically:
+1. Create a Python virtual environment (if not exists)
+2. Install all dependencies
+3. Start the server at `http://localhost:8000`
+
+#### Method 2: Automatic Installation
 
 ```bash
 # Clone the repository
@@ -46,7 +65,7 @@ chmod +x install.sh
 ./install.sh
 ```
 
-#### Method 2: Docker
+#### Method 3: Docker
 
 ```bash
 # Clone the repository
@@ -175,6 +194,7 @@ AI-Video-Transcriber/
 ├── .env.example            # Environment variables template
 ├── requirements.txt        # Python dependencies
 ├── start.py               # Startup script
+├── start.sh               # One-click start/stop script
 └── README.md              # Project documentation
 ```
 
