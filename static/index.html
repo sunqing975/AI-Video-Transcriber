@@ -281,6 +281,49 @@
     }
     .inline-lang-select option { background: var(--surface-2); }
 
+    /* ── Toggle Switch ──────────────────────────────────── */
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 36px;
+      height: 20px;
+      cursor: pointer;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--surface-3);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      transition: all .2s;
+    }
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      left: 2px;
+      top: 2px;
+      width: 14px;
+      height: 14px;
+      background: var(--text-dim);
+      border-radius: 50%;
+      transition: all .2s;
+    }
+    .toggle-switch input:checked + .toggle-slider {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .toggle-switch input:checked + .toggle-slider::before {
+      transform: translateX(16px);
+      background: #fff;
+    }
+    .toggle-label {
+      font-size: 13px;
+      color: var(--text-dim);
+      white-space: nowrap;
+      user-select: none;
+    }
+
     .settings-body {
       overflow: hidden;
       max-height: 0;
@@ -612,7 +655,7 @@
     <input type="file" id="fileInput" accept=".txt,.mp3,.mp4,.m4a,.wav,.webm,.mkv,.ogg,.flac" hidden>
   </div>
 
-  <!-- Settings row: Summary Language + AI Settings toggle -->
+  <!-- Settings row: Summary Toggle + Summary Language + AI Settings toggle -->
   <div class="settings-row">
     <div class="inline-lang">
       <label class="inline-lang-label" for="summaryLanguage" data-i18n="summary_language">Summary Language</label>
@@ -631,11 +674,20 @@
       </select>
     </div>
 
-    <button class="settings-toggle" id="settingsToggle">
-      <i class="fas fa-cog" style="font-size:10px;"></i>
-      <span data-i18n="ai_settings">AI Settings</span>
-      <i class="fas fa-chevron-down arrow"></i>
-    </button>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <!-- Summary Toggle -->
+      <label class="toggle-switch" title="Enable/Disable AI Summary">
+        <input type="checkbox" id="summaryToggle">
+        <span class="toggle-slider"></span>
+      </label>
+      <span class="toggle-label" data-i18n="ai_summary">AI Summary</span>
+
+      <button class="settings-toggle" id="settingsToggle">
+        <i class="fas fa-cog" style="font-size:10px;"></i>
+        <span data-i18n="ai_settings">AI Settings</span>
+        <i class="fas fa-chevron-down arrow"></i>
+      </button>
+    </div>
   </div>
 
   <div class="settings-body" id="settingsBody">

@@ -38,6 +38,7 @@ class VideoTranscriber {
         download_transcript:     'Transcript',
         download_translation:    'Translation',
         download_summary:        'Summary',
+        ai_summary:              'AI Summary',
         empty_hint:              'Paste a video URL or drop a file above and let AI do the heavy lifting.',
         footer_text:             'This tool is part of <a href="https://sipsip.ai" target="_blank" style="color:var(--accent-text);text-decoration:none;">sipsip.ai</a> — distill anything and get daily AI briefs from your favorite creators',
         processing:              'Processing…',
@@ -88,6 +89,7 @@ class VideoTranscriber {
         download_transcript:     '转录',
         download_translation:    '翻译',
         download_summary:        '摘要',
+        ai_summary:              'AI 摘要',
         empty_hint:              '在上方粘贴视频链接或拖放文件，让 AI 来处理一切。',
         footer_text:             '本工具是 <a href="https://sipsip.ai" target="_blank" style="color:var(--accent-text);text-decoration:none;">sipsip.ai</a> 的一部分 — 提取任何内容要点并构建你自己的知识库。',
         processing:              '处理中…',
@@ -162,6 +164,7 @@ class VideoTranscriber {
     this.uploadZone         = document.getElementById('uploadZone');
     this.uploadPickBtn      = document.getElementById('uploadPickBtn');
     this.fileInput          = document.getElementById('fileInput');
+    this.summaryToggle      = document.getElementById('summaryToggle');
     this.uploadMaxMb        = 200;
     this._allowedUploadExts = new Set(['.txt', '.mp3', '.mp4', '.m4a', '.wav', '.webm', '.mkv', '.ogg', '.flac']);
   }
@@ -272,6 +275,7 @@ class VideoTranscriber {
       apiKey:   this.apiKeyInput.value,
       model:    this.modelSelect.value,
       summaryLang: this.summaryLangSel.value,
+      summaryEnabled: this.summaryToggle ? this.summaryToggle.checked : true,
     };
     try { localStorage.setItem('vt_settings', JSON.stringify(s)); } catch (_) {}
   }
@@ -284,6 +288,9 @@ class VideoTranscriber {
       if (s.baseUrl)     this.modelBaseUrl.value = s.baseUrl;
       if (s.apiKey)      this.apiKeyInput.value  = s.apiKey;
       if (s.summaryLang) this.summaryLangSel.value = s.summaryLang;
+      if (s.summaryEnabled !== undefined && this.summaryToggle) {
+        this.summaryToggle.checked = s.summaryEnabled;
+      }
       // Model options will be restored after fetching
       this._savedModel = s.model || '';
 
@@ -380,9 +387,11 @@ class VideoTranscriber {
       const apiKey  = this.apiKeyInput.value.trim();
       const baseUrl = this.modelBaseUrl.value.trim().replace(/\/$/, '');
       const modelId = this.modelSelect.value;
+      const summaryEnabled = this.summaryToggle ? this.summaryToggle.checked : true;
       if (apiKey)  fd.append('api_key',       apiKey);
       if (baseUrl) fd.append('model_base_url', baseUrl);
       if (modelId) fd.append('model_id',       modelId);
+      fd.append('enable_summary', summaryEnabled ? 'true' : 'false');
 
       const resp = await fetch(`${this.apiBase}/process-video`, { method: 'POST', body: fd });
       if (!resp.ok) {
@@ -437,9 +446,11 @@ class VideoTranscriber {
       const apiKey  = this.apiKeyInput.value.trim();
       const baseUrl = this.modelBaseUrl.value.trim().replace(/\/$/, '');
       const modelId = this.modelSelect.value;
+      const summaryEnabled = this.summaryToggle ? this.summaryToggle.checked : true;
       if (apiKey)  fd.append('api_key',       apiKey);
       if (baseUrl) fd.append('model_base_url', baseUrl);
       if (modelId) fd.append('model_id',       modelId);
+      fd.append('enable_summary', summaryEnabled ? 'true' : 'false');
 
       const resp = await fetch(`${this.apiBase}/process-video`, { method: 'POST', body: fd });
       if (!resp.ok) {

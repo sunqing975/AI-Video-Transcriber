@@ -147,6 +147,7 @@ async def _run_post_extract_pipeline(
     api_key: str = "",
     model_base_url: str = "",
     model_id: str = "",
+    enable_summary: str = "true",
 ) -> None:
     """取得 raw_script 后的共用管线：归档、优化、翻译、摘要、广播。"""
     short_id = task_id.replace("-", "")[:6]
@@ -224,15 +225,29 @@ async def _run_post_extract_pipeline(
             f"need_translation={need_translation}"
         )
 
-    tasks[task_id].update({
-        "progress": 80,
-        "message": "正在生成摘要...",
-    })
-    save_tasks(tasks)
-    await broadcast_task_update(task_id, tasks[task_id])
+    # 根据开关决定是否生成摘要
+    summary = None
+    summary_with_source = None
+    summary_path = None
+    summary_filename = None
 
-    summary = await request_summarizer.summarize(script, summary_language, video_title)
-    summary_with_source = summary + f"\n\nsource: {source_ref}\n"
+    if enable_summary.lower() == "true":
+        tasks[task_id].update({
+            "progress": 80,
+            "message": "正在生成摘要...",
+        })
+        save_tasks(tasks)
+        await broadcast_task_update(task_id, tasks[task_id])
+
+        summary = await request_summarizer.summarize(script, summary_language, video_title)
+        summary_with_source = summary + f"\n\nsource: {source_ref}\n"
+
+        summary_filename = f"summary_{safe_title}_{short_id}.md"
+        summary_path = TEMP_DIR / summary_filename
+        async with aiofiles.open(summary_path, "w", encoding="utf-8") as f:
+            await f.write(summary_with_source)
+    else:
+        logger.info("摘要功能已关闭，跳过摘要生成")
 
     script_filename = f"transcript_{task_id}.md"
     script_path = TEMP_DIR / script_filename
@@ -248,11 +263,6 @@ async def _run_post_extract_pipeline(
     except Exception:
         pass
 
-    summary_filename = f"summary_{safe_title}_{short_id}.md"
-    summary_path = TEMP_DIR / summary_filename
-    async with aiofiles.open(summary_path, "w", encoding="utf-8") as f:
-        await f.write(summary_with_source)
-
     task_result = {
         "status": "completed",
         "progress": 100,
@@ -261,7 +271,7 @@ async def _run_post_extract_pipeline(
         "script": script_with_title,
         "summary": summary_with_source,
         "script_path": str(script_path),
-        "summary_path": str(summary_path),
+        "summary_path": str(summary_path) if summary_path else None,
         "short_id": short_id,
         "safe_title": safe_title,
         "detected_language": detected_language,
@@ -321,6 +331,7 @@ async def _enqueue_upload_job(
     api_key: str,
     model_base_url: str,
     model_id: str,
+    enable_summary: str = "true",
 ) -> dict:
     """保存上传文件并入队 process_upload_task，返回 {task_id, message}。"""
     raw_name = file.filename or "upload.bin"
@@ -389,6 +400,7 @@ async def _enqueue_upload_job(
             api_key,
             model_base_url,
             model_id,
+            enable_summary,
         )
     )
     active_tasks[task_id] = bg
@@ -403,6 +415,7 @@ async def process_video(
     api_key: str = Form(default=""),
     model_base_url: str = Form(default=""),
     model_id: str = Form(default=""),
+    enable_summary: str = Form(default="true"),
     file: Optional[UploadFile] = File(None),
 ):
     """
@@ -412,7 +425,7 @@ async def process_video(
     try:
         if file is not None and (file.filename or "").strip():
             return await _enqueue_upload_job(
-                file, summary_language, api_key, model_base_url, model_id
+                file, summary_language, api_key, model_base_url, model_id, enable_summary
             )
 
         stripped = (url or "").strip()
@@ -450,7 +463,7 @@ async def process_video(
         save_tasks(tasks)
         
         # 创建并跟踪异步任务
-        task = asyncio.create_task(process_video_task(task_id, url, summary_language, api_key, model_base_url, model_id))
+        task = asyncio.create_task(process_video_task(task_id, url, summary_language, api_key, model_base_url, model_id, enable_summary))
         active_tasks[task_id] = task
         
         return {"task_id": task_id, "message": "任务已创建，正在处理中..."}
@@ -468,6 +481,7 @@ async def process_video_task(
     api_key: str = "",
     model_base_url: str = "",
     model_id: str = "",
+    enable_summary: str = "true",
 ):
     """
     异步处理视频任务
@@ -550,6 +564,7 @@ async def process_video_task(
             api_key=api_key,
             model_base_url=model_base_url,
             model_id=model_id,
+            enable_summary=enable_summary,
         )
 
         # 不要立即删除临时文件！保留给用户下载
@@ -579,10 +594,11 @@ async def process_upload(
     api_key: str = Form(default=""),
     model_base_url: str = Form(default=""),
     model_id: str = Form(default=""),
+    enable_summary: str = Form(default="true"),
 ):
     """独立上传入口；逻辑与 multipart 带 file 的 /api/process-video 相同。"""
     return await _enqueue_upload_job(
-        file, summary_language, api_key, model_base_url, model_id
+        file, summary_language, api_key, model_base_url, model_id, enable_summary
     )
 
 
@@ -596,6 +612,7 @@ async def process_upload_task(
     api_key: str = "",
     model_base_url: str = "",
     model_id: str = "",
+    enable_summary: str = "true",
 ):
     source_ref = f"upload:{original_name}"
     try:
@@ -662,6 +679,7 @@ async def process_upload_task(
             api_key=api_key,
             model_base_url=model_base_url,
             model_id=model_id,
+            enable_summary=enable_summary,
         )
 
     except Exception as e:
